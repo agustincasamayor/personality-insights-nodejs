@@ -22,6 +22,7 @@ var express  = require('express'),
   session    = require('express-session'),
   cookieParser = require('cookie-parser'),
   logger     = require('winston'),
+  morgan = require('morgan'),
   i18n       = require('i18n');
 
 module.exports = function (app) {
@@ -29,6 +30,7 @@ module.exports = function (app) {
   app.set('view engine', 'ejs');
   require('ejs').delimiter = '$';
   app.enable('trust proxy');
+  app.use(morgan('dev'));
 
   // Configure Express
   app.use(bodyParser.urlencoded({ extended: true, limit: '15mb' }));

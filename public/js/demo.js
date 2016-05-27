@@ -433,6 +433,12 @@ $(document).ready(function () {
       return u;
     }
 
+    function toHtml(markdownDict) {
+      return mapObject(markdownDict, function(key, value) {
+        return renderMarkdown(value);
+      });
+    }
+
     var descriptions = new PersonalityTraitDescriptions({
       format: 'markdown',
       locale: globalState.userLocale || OUTPUT_LANG || 'en'
