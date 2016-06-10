@@ -19,7 +19,7 @@
 // Module dependencies
 var express  = require('express'),
   bodyParser = require('body-parser'),
-  session    = require('express-session'),
+  session    = require('./session'),
   cookieParser = require('cookie-parser'),
   logger     = require('winston'),
   i18n       = require('i18n');
@@ -38,6 +38,8 @@ module.exports = function (app) {
 
   var secret = Math.random().toString(36).substring(7);
   app.use(cookieParser(secret));
+
+
   app.use(session({ secret:secret }));
 
   require('./i18n')(app);
