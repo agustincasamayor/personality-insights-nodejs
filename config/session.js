@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 IBM Corp. All Rights Reserved.
+ * Copyright 2015-2016 IBM Corp. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +26,11 @@ var logger = require('winston');
 
 
 function databaseSessionAvailable() {
-  return !isUndefined(env.getService('Cloudant')) && env.getService('Cloudant') != null;
+  return env.getService(/[cC]loudant/) != null;
 }
 
 function storeOptions() {
-  return { url: env.getServiceCreds('cloudant').url };
+  return { url: env.getServiceCreds(/[cC]loudant/).url };
 }
 
 function databaseSession(options) {
