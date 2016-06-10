@@ -40,7 +40,10 @@ module.exports = function (app) {
   app.use(cookieParser(secret));
 
 
-  app.use(session({ secret:secret }));
+  app.use(session({
+    secret : secret,
+    cookie : { maxAge : 24*60*60*1000 } 
+  }));
 
   require('./i18n')(app);
 

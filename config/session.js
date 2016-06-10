@@ -18,29 +18,87 @@
 
 
 var session = require('express-session');
+var CloudantStore = require('connect-cloudant')(session);
 var _ = require('underscore');
 var extend = _.extend;
+var contains = _.contains;
+var pick = _.pick;
 var isUndefined = _.isUndefined;
 var env = require('cfenv').getAppEnv();
 var logger = require('winston');
-
+var Cloudant = require('cloudant');
+var asPromise = require('../utilities/promises/callback-to-promise');
 
 function databaseSessionAvailable() {
   return env.getService(/[cC]loudant/) != null;
 }
 
 function storeOptions() {
-  return { url: env.getServiceCreds(/[cC]loudant/).url };
+  return {
+    url: env.getServiceCreds(/[cC]loudant/).url,
+    databaseName: 'sessions'
+  };
+}
+
+function withCloudant() {
+  return new Promise(function (resolve, reject) {
+    var credentials = env.getServiceCreds(/[cC]loudant/);
+    Cloudant(
+      {
+        account : credentials.username,
+        password : credentials.password
+      },
+      function (err, cloudant) {
+        err ? reject(err) : resolve(cloudant);
+      }
+    );
+  });
+}
+
+function listDbs(cloudant) {
+  return asPromise(cloudant.db.list);
+}
+
+function dbExists(databaseName) {
+  return function (databases) {
+    return Promise.resolve(contains(databases, databaseName));
+  };
+}
+
+function createDb(cloudant, databaseName) {
+  return function() {
+    return asPromise(cloudant.db.create.bind(cloudant, databaseName))
+      .then(function() { logger.info('Created sessions database: \''+ databaseName +'\'.'); });
+  };
+}
+
+function ifelse(fTrue, fFalse) {
+  return function (bool) {
+    return bool ? fTrue() : fFalse();
+  };
+}
+
+function id(x) { return x; }
+
+function initializeSessionDB(options) {
+  withCloudant()
+    .then(function(cloudant) {
+      return listDbs(cloudant)
+        .then(dbExists(options.databaseName))
+        .then(ifelse(id, createDb(cloudant, options.databaseName)));
+    });
 }
 
 function databaseSession(options) {
-  var CloudantStore = require('connect-cloudant')(session);
-  var cloudantStore = new CloudantStore(extend(storeOptions(), options));
+  var _options = extend(storeOptions(), options || {});
+  var cloudantStore = new CloudantStore(_options);
 
   cloudantStore.on('connect', function () { return logger.debug('Cloudant session store is ready for use'); });
   cloudantStore.on('disconnect', function () { return logger.debug('An error occurred connecting to Cloudant Session Storage'); });
 
-  return session( extend({}, options, { store: CloudantStore }) );
+  initializeSessionDB(_options);
+
+  return session( extend(_options, { store: cloudantStore }) );
 }
 
 module.exports = function (options) {
